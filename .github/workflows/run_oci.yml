@@ -75,4 +75,10 @@ jobs:
             # If it's a new error we haven't seen, we still want to know
             echo "INSTANCE_CREATED=unknown" >> $GITHUB_ENV
           fi
-        
+
+      - name: Send Telegram Notification
+        if: env.INSTANCE_CREATED == 'true'
+        run: |
+          curl -s -X POST https://api.telegram.org/bot${{ secrets.TELEGRAM_TOKEN }}/sendMessage \
+          -d chat_id=${{ secrets.TELEGRAM_CHAT_ID }} \
+          -d text="🚀 OCI SUCCESS: Your 24GB ARM Instance is being created!"
