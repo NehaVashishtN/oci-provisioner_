@@ -59,4 +59,19 @@ jobs:
           echo "TOO_MANY_REQUESTS_TIME_WAIT=${{ secrets.TOO_MANY_REQUESTS_TIME_WAIT }}" >> .env
 
       - name: Run Script
-        run: php index.php
+        id: run_script
+        run: |
+          # Use the -d flag to suppress deprecation warnings that might mess up the JSON response
+          php -d error_reporting="E_ALL & ~E_DEPRECATED" index.php > output.txt 2>&1
+          cat output.txt
+          
+          # Logic for Telegram (Option B)
+          if grep -q "Out of host capacity" output.txt; then
+            echo "INSTANCE_CREATED=false" >> $GITHUB_ENV
+          elif grep -q "PROVISIONING" output.txt || grep -q "RUNNING" output.txt; then
+            echo "INSTANCE_CREATED=true" >> $GITHUB_ENV
+          else
+            # If it's a new error we haven't seen, we still want to know
+            echo "INSTANCE_CREATED=unknown" >> $GITHUB_ENV
+          fi
+        
