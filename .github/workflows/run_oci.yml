@@ -46,7 +46,8 @@ jobs:
           echo "OCI_AVAILABILITY_DOMAIN=${{ secrets.OCI_AVAILABILITY_DOMAIN }}" >> .env
 
           echo "OCI_SSH_PUBLIC_KEY='${{ secrets.OCI_SSH_PUBLIC_KEY }}'" >> .env
-          echo "OCI_SHAPE=$(echo ${{ secrets.OCI_SHAPE }} | xargs)" >> .env
+          
+          echo "OCI_SHAPE=VM.Standard.A1.Flex" >> .env
           
           # Force these to be treated as clean integers
           echo "OCI_OCPUs=4" >> .env
