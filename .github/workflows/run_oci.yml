@@ -28,16 +28,17 @@ jobs:
 
           echo "OCI_PRIVATE_KEY_FILENAME=$GITHUB_WORKSPACE/oci_api_key.pem" >> .env
           
-          # Fixed syntax for all secrets
+          # Clean strings for OCIDs
           echo "OCI_USER_ID=$(echo ${{ secrets.OCI_USER_ID }} | tr -d '[:space:]')" >> .env
           echo "OCI_TENANCY_ID=$(echo ${{ secrets.OCI_TENANCY_ID }} | tr -d '[:space:]')" >> .env
           echo "OCI_REGION=$(echo ${{ secrets.OCI_REGION }} | tr -d '[:space:]')" >> .env
           echo "OCI_KEY_FINGERPRINT=$(echo ${{ secrets.OCI_KEY_FINGERPRINT }} | tr -d '[:space:]')" >> .env
-          echo "OCI_SUBNET_ID=$(echo ${{ secrets.OCI_SUBNET_ID }} | tr -d '[:space:]')" >> .env
           echo "OCI_IMAGE_ID=$(echo ${{ secrets.OCI_IMAGE_ID }} | tr -d '[:space:]')" >> .env
+          echo "OCI_SUBNET_ID=$(echo ${{ secrets.OCI_SUBNET_ID }} | tr -d '[:space:]')" >> .env
           echo "OCI_AVAILABILITY_DOMAIN=$(echo ${{ secrets.OCI_AVAILABILITY_DOMAIN }} | tr -d '[:space:]')" >> .env
           echo "OCI_SSH_PUBLIC_KEY=$(echo ${{ secrets.OCI_SSH_PUBLIC_KEY }} | tr -d '[:space:]')" >> .env
           
+          # Standard values
           echo "OCI_SHAPE=VM.Standard.A1.Flex" >> .env
           echo "OCI_OCPUs=4" >> .env
           echo "OCI_MEMORY_IN_GBS=24" >> .env
