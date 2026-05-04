@@ -1,0 +1,41 @@
+name: OCI Capacity Hunter
+on:
+  schedule:
+    - cron: '* * * * *'  # Requests to run every minute (GitHub may delay this slightly)
+  workflow_dispatch: # Allows you to run it manually for testing
+
+jobs:
+  run-script:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Random Jitter
+        run: sleep $((RANDOM % 45)) # Adds 0-45 seconds of jitter to avoid "bot" detection
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3' # Stable version to avoid 8.5 deprecation errors
+
+      - name: Install dependencies
+        run: composer install
+
+      - name: Create .env file from Secrets
+        run: |
+          echo "OCI_USER_ID=${{ secrets.OCI_USER_ID }}" >> .env
+          echo "OCI_TENANCY_ID=${{ secrets.OCI_TENANCY_ID }}" >> .env
+          echo "OCI_REGION=${{ secrets.OCI_REGION }}" >> .env
+          echo "OCI_KEY_FINGERPRINT=${{ secrets.OCI_KEY_FINGERPRINT }}" >> .env
+          echo "OCI_SUBNET_ID=${{ secrets.OCI_SUBNET_ID }}" >> .env
+          echo "OCI_IMAGE_ID=${{ secrets.OCI_IMAGE_ID }}" >> .env
+          echo "OCI_AVAILABILITY_DOMAIN=${{ secrets.OCI_AVAILABILITY_DOMAIN }}" >> .env
+          echo "OCI_OCPUs=${{ secrets.OCI_OCPUs }}" >> .env
+          echo "OCI_MEMORY_IN_GBS=${{ secrets.OCI_MEMORY_IN_GBS }}" >> .env
+          echo "OCI_SSH_PUBLIC_KEY='${{ secrets.OCI_SSH_PUBLIC_KEY }}'" >> .env
+          echo "${{ secrets.OCI_PRIVATE_KEY }}" > private_key.pem
+          echo "OCI_PRIVATE_KEY_FILENAME=private_key.pem" >> .env
+
+      - name: Run Script
+        run: php index.php
