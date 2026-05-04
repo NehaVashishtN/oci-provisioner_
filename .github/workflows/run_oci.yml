@@ -44,21 +44,9 @@ jobs:
           echo "OCI_BOOT_VOLUME_SIZE_IN_GBS=200" >> .env
 
       - name: Run Script
-        id: run_script
         run: |
-          php -d error_reporting="E_ALL & ~E_DEPRECATED" index.php > output.txt 2>&1
-          cat output.txt
-          
-          if grep -q "Out of host capacity" output.txt; then
-            echo "INSTANCE_CREATED=false" >> $GITHUB_OUTPUT
-            echo "INSTANCE_CREATED=false" >> $GITHUB_ENV
-          elif grep -q "PROVISIONING" output.txt || grep -q "RUNNING" output.txt || grep -q "displayName" output.txt; then
-            echo "INSTANCE_CREATED=true" >> $GITHUB_OUTPUT
-            echo "INSTANCE_CREATED=true" >> $GITHUB_ENV
-          else
-            echo "INSTANCE_CREATED=unknown" >> $GITHUB_OUTPUT
-            echo "INSTANCE_CREATED=unknown" >> $GITHUB_ENV
-          fi
+          # Removing the "> output.txt" so the error prints to the screen
+          php -d display_errors=1 -d error_reporting=E_ALL index.php
 
       - name: Send Telegram Notification
         if: env.INSTANCE_CREATED == 'true'
@@ -66,3 +54,4 @@ jobs:
           curl -s -X POST https://api.telegram.org/bot${{ secrets.TELEGRAM_TOKEN }}/sendMessage \
           -d chat_id=${{ secrets.TELEGRAM_CHAT_ID }} \
           -d text="🚀 OCI SUCCESS: Your 24GB ARM Instance is being created for your NevilLabs project!"
+
