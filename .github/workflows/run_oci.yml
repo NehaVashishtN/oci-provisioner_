@@ -22,8 +22,21 @@ jobs:
       - name: Install dependencies
         run: composer install
 
-      - name: Create .env file from Secrets
+      - name: Create .env and Key File
         run: |
+          # Create the file from the secret content
+          cat <<EOF > oci_api_key.pem
+          ${{ secrets.OCI_PRIVATE_KEY_FILENAME }}
+          EOF
+          
+          chmod 600 oci_api_key.pem
+
+          # Verify the key is readable (for debugging, won't show content)
+          openssl rsa -in oci_api_key.pem -check -noout
+          
+          # Map the .env variable to the path of the file we just created
+          echo "OCI_PRIVATE_KEY_FILENAME=$GITHUB_WORKSPACE/oci_api_key.pem" >> .env
+          
           echo "OCI_USER_ID=${{ secrets.OCI_USER_ID }}" >> .env
           echo "OCI_TENANCY_ID=${{ secrets.OCI_TENANCY_ID }}" >> .env
           echo "OCI_REGION=${{ secrets.OCI_REGION }}" >> .env
@@ -34,8 +47,6 @@ jobs:
           echo "OCI_OCPUs=${{ secrets.OCI_OCPUs }}" >> .env
           echo "OCI_MEMORY_IN_GBS=${{ secrets.OCI_MEMORY_IN_GBS }}" >> .env
           echo "OCI_SSH_PUBLIC_KEY='${{ secrets.OCI_SSH_PUBLIC_KEY }}'" >> .env
-          echo "${{ secrets.OCI_PRIVATE_KEY }}" > private_key.pem
-          echo "OCI_PRIVATE_KEY_FILENAME=private_key.pem" >> .env
 
       - name: Run Script
         run: php index.php
