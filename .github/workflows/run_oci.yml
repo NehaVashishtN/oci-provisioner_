@@ -21,26 +21,33 @@ jobs:
 
       - name: Create .env and Key File
         run: |
+          # 1. Create the Key File
           cat <<EOF > oci_api_key.pem
           ${{ secrets.OCI_PRIVATE_KEY_FILENAME }}
           EOF
           chmod 600 oci_api_key.pem
 
-          # Using double quotes around values to handle whitespace safely
-          echo "OCI_USER_ID=\"${{ secrets.OCI_USER_ID }}\"" >> .env
-          echo "OCI_TENANCY_ID=\"${{ secrets.OCI_TENANCY_ID }}\"" >> .env
-          echo "OCI_REGION=\"${{ secrets.OCI_REGION }}\"" >> .env
-          echo "OCI_KEY_FINGERPRINT=\"${{ secrets.OCI_KEY_FINGERPRINT }}\"" >> .env
-          echo "OCI_SUBNET_ID=\"${{ secrets.OCI_SUBNET_ID }}\"" >> .env
-          echo "OCI_IMAGE_ID=\"${{ secrets.OCI_IMAGE_ID }}\"" >> .env
-          echo "OCI_AVAILABILITY_DOMAIN=\"${{ secrets.OCI_AVAILABILITY_DOMAIN }}\"" >> .env
-          echo "OCI_SSH_PUBLIC_KEY=\"${{ secrets.OCI_SSH_PUBLIC_KEY }}\"" >> .env
-          
-          echo "OCI_PRIVATE_KEY_FILENAME=\"$GITHUB_WORKSPACE/oci_api_key.pem\"" >> .env
-          echo "OCI_SHAPE=\"VM.Standard.A1.Flex\"" >> .env
-          echo "OCI_OCPUs=4" >> .env
-          echo "OCI_MEMORY_IN_GBS=24" >> .env
-          echo "OCI_BOOT_VOLUME_SIZE_IN_GBS=\"200\"" >> .env
+          # 2. Create the .env using a Heredoc to prevent quoting/whitespace issues
+          # Note: We do NOT put quotes around the secrets here; the heredoc handles the string literal
+          cat <<EOF > .env
+          OCI_USER_ID=${{ secrets.OCI_USER_ID }}
+          OCI_TENANCY_ID=${{ secrets.OCI_TENANCY_ID }}
+          OCI_REGION=${{ secrets.OCI_REGION }}
+          OCI_KEY_FINGERPRINT=${{ secrets.OCI_KEY_FINGERPRINT }}
+          OCI_SUBNET_ID=${{ secrets.OCI_SUBNET_ID }}
+          OCI_IMAGE_ID=${{ secrets.OCI_IMAGE_ID }}
+          OCI_AVAILABILITY_DOMAIN=${{ secrets.OCI_AVAILABILITY_DOMAIN }}
+          OCI_SSH_PUBLIC_KEY=${{ secrets.OCI_SSH_PUBLIC_KEY }}
+          OCI_PRIVATE_KEY_FILENAME=$GITHUB_WORKSPACE/oci_api_key.pem
+          OCI_SHAPE=VM.Standard.A1.Flex
+          OCI_OCPUs=4
+          OCI_MEMORY_IN_GBS=24
+          OCI_BOOT_VOLUME_SIZE_IN_GBS=200
+          EOF
+
+          # 3. Final "Sanity Strip" - This removes any accidental carriage returns (\r) 
+          # from the .env file that might have come from a Windows/Mac copy-paste.
+          sed -i 's/\r//g' .env
 
       - name: Run Script
         run: |
