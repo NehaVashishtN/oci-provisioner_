@@ -1,78 +1,62 @@
 name: OCI Capacity Hunter
 on:
   schedule:
-    - cron: '* * * * *'  # Requests to run every minute (GitHub may delay this slightly)
-  workflow_dispatch: # Allows you to run it manually for testing
+    - cron: '* * * * *'
+  workflow_dispatch:
 
 jobs:
   run-script:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Random Jitter
-        run: sleep $((RANDOM % 45)) # Adds 0-45 seconds of jitter to avoid "bot" detection
+        uses: actions/checkout@v4
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.3' # Stable version to avoid 8.5 deprecation errors
+          php-version: '8.3'
 
       - name: Install dependencies
         run: composer install
 
       - name: Create .env and Key File
         run: |
-          # Create the file from the secret content
           cat <<EOF > oci_api_key.pem
           ${{ secrets.OCI_PRIVATE_KEY_FILENAME }}
           EOF
-          
           chmod 600 oci_api_key.pem
 
-          # Verify the key is readable (for debugging, won't show content)
-          openssl rsa -in oci_api_key.pem -check -noout
-          
-          # Map the .env variable to the path of the file we just created
           echo "OCI_PRIVATE_KEY_FILENAME=$GITHUB_WORKSPACE/oci_api_key.pem" >> .env
           
-          echo "OCI_USER_ID=${{ secrets.OCI_USER_ID }}| tr -d '[:space:]')" >> .env
-          echo "OCI_TENANCY_ID=${{ secrets.OCI_TENANCY_ID }}| tr -d '[:space:]')" >> .env
-          echo "OCI_REGION=${{ secrets.OCI_REGION }}| tr -d '[:space:]')" >> .env
-          echo "OCI_KEY_FINGERPRINT=${{ secrets.OCI_KEY_FINGERPRINT }}| tr -d '[:space:]')" >> .env
-          echo "OCI_SUBNET_ID=${{ secrets.OCI_SUBNET_ID }}| tr -d '[:space:]')" >> .env
-          
-          echo "OCI_IMAGE_ID=$(echo ${{ secrets.OCI_IMAGE_ID }} | tr -d '\r\n ')" >> .env
-          
-          echo "OCI_AVAILABILITY_DOMAIN=${{ secrets.OCI_AVAILABILITY_DOMAIN }}| tr -d '[:space:]')" >> .env
-
-          echo "OCI_SSH_PUBLIC_KEY=${{ secrets.OCI_SSH_PUBLIC_KEY }}| tr -d '[:space:]')" >> .env
+          # Fixed syntax for all secrets
+          echo "OCI_USER_ID=$(echo ${{ secrets.OCI_USER_ID }} | tr -d '[:space:]')" >> .env
+          echo "OCI_TENANCY_ID=$(echo ${{ secrets.OCI_TENANCY_ID }} | tr -d '[:space:]')" >> .env
+          echo "OCI_REGION=$(echo ${{ secrets.OCI_REGION }} | tr -d '[:space:]')" >> .env
+          echo "OCI_KEY_FINGERPRINT=$(echo ${{ secrets.OCI_KEY_FINGERPRINT }} | tr -d '[:space:]')" >> .env
+          echo "OCI_SUBNET_ID=$(echo ${{ secrets.OCI_SUBNET_ID }} | tr -d '[:space:]')" >> .env
+          echo "OCI_IMAGE_ID=$(echo ${{ secrets.OCI_IMAGE_ID }} | tr -d '[:space:]')" >> .env
+          echo "OCI_AVAILABILITY_DOMAIN=$(echo ${{ secrets.OCI_AVAILABILITY_DOMAIN }} | tr -d '[:space:]')" >> .env
+          echo "OCI_SSH_PUBLIC_KEY=$(echo ${{ secrets.OCI_SSH_PUBLIC_KEY }} | tr -d '[:space:]')" >> .env
           
           echo "OCI_SHAPE=VM.Standard.A1.Flex" >> .env
-          
-          # Force these to be treated as clean integers
           echo "OCI_OCPUs=4" >> .env
           echo "OCI_MEMORY_IN_GBS=24" >> .env
-          
-          # CRITICAL: Ensure Boot Volume is exactly 200 to stay in Always Free
           echo "OCI_BOOT_VOLUME_SIZE_IN_GBS=200" >> .env
-          echo "TOO_MANY_REQUESTS_TIME_WAIT=${{ secrets.TOO_MANY_REQUESTS_TIME_WAIT }}| tr -d '[:space:]')" >> .env
 
       - name: Run Script
         id: run_script
         run: |
-          # Use the -d flag to suppress deprecation warnings that might mess up the JSON response
           php -d error_reporting="E_ALL & ~E_DEPRECATED" index.php > output.txt 2>&1
           cat output.txt
           
-          # Logic for Telegram (Option B)
           if grep -q "Out of host capacity" output.txt; then
+            echo "INSTANCE_CREATED=false" >> $GITHUB_OUTPUT
             echo "INSTANCE_CREATED=false" >> $GITHUB_ENV
-          elif grep -q "PROVISIONING" output.txt || grep -q "RUNNING" output.txt; then
+          elif grep -q "PROVISIONING" output.txt || grep -q "RUNNING" output.txt || grep -q "displayName" output.txt; then
+            echo "INSTANCE_CREATED=true" >> $GITHUB_OUTPUT
             echo "INSTANCE_CREATED=true" >> $GITHUB_ENV
           else
-            # If it's a new error we haven't seen, we still want to know
+            echo "INSTANCE_CREATED=unknown" >> $GITHUB_OUTPUT
             echo "INSTANCE_CREATED=unknown" >> $GITHUB_ENV
           fi
 
@@ -81,4 +65,4 @@ jobs:
         run: |
           curl -s -X POST https://api.telegram.org/bot${{ secrets.TELEGRAM_TOKEN }}/sendMessage \
           -d chat_id=${{ secrets.TELEGRAM_CHAT_ID }} \
-          -d text="🚀 OCI SUCCESS: Your 24GB ARM Instance is being created!"
+          -d text="🚀 OCI SUCCESS: Your 24GB ARM Instance is being created for your NevilLabs project!"
